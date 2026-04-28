@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f2f8fc;
+  --surface: #ffffff;
+  --surface-muted: #f4fbff;
+  --foreground: #000000;
+  --muted: #536273;
+  --border: #d7e7f2;
+  --accent: #2196f3;
+  --accent-strong: #167fd1;
+  --accent-soft: #e7f4fe;
+  --accent-alt: #26a69a;
+  --accent-alt-strong: #1f8a80;
+  --accent-alt-soft: #e5f7f5;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --shadow: 0 18px 46px rgba(24, 75, 118, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(33, 150, 243, 0.18) 0%, transparent 28%),
+    radial-gradient(circle at top right, rgba(38, 166, 154, 0.16) 0%, transparent 24%),
+    linear-gradient(180deg, #f8fcff 0%, #eef6fb 100%);
+  color: var(--foreground);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+code,
+.font-mono {
+  font-family: var(--font-mono), "SFMono-Regular", monospace;
+}
+
+::selection {
+  background: rgba(33, 150, 243, 0.18);
+}

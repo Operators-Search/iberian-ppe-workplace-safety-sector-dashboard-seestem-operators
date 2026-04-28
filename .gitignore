@@ -1,0 +1,16 @@
+.next
+next-build
+next-build-link
+junction-test
+node_modules
+.vercel
+.env
+.env.local
+.env*.local
+Dashboard.xlsx
+SABI.xlsx
+data/input/*.xlsx
+coverage
+dist
+*.log
+*.tsbuildinfo
