@@ -1,17 +1,22 @@
 export const ATTRIBUTE_DEFINITIONS = [
-  { key: "ocean_freight", label: "Ocean freight" },
-  { key: "air_freight", label: "Air freight" },
-  { key: "road_freight", label: "Road freight" },
-  { key: "rail_intermodal", label: "Rail intermodal" },
-  { key: "customs_clearance", label: "Customs clearance" },
-  { key: "temperature_controlled_cold_chain", label: "Temperature controlled cold chain" },
-  { key: "pharma_or_gdp_related", label: "Pharma or GDP related" },
-  { key: "dangerous_goods_chemicals", label: "Dangerous goods chemicals" },
+  { key: "fall_protection_ppe", label: "Fall protection PPE" },
+  { key: "hearing_protection", label: "Hearing protection" },
+  { key: "hand_and_arm_protection", label: "Hand and arm protection" },
+  { key: "foot_and_leg_protection", label: "Foot and leg protection" },
+  { key: "eye_and_face_protection", label: "Eye and face protection" },
+  { key: "respiratory_protection", label: "Respiratory protection" },
+  { key: "head_protection", label: "Head protection" },
+  { key: "protective_clothing", label: "Protective clothing" },
+  { key: "workplace_safety_equipment_non_worn", label: "Workplace safety equipment non worn" },
+  { key: "consumables_and_disposables", label: "Consumables and disposables" },
+  { key: "manufacturing", label: "Manufacturing" },
+  { key: "distribution", label: "Distribution" },
 ] as const;
 
 export type CompanyAttributeKey = (typeof ATTRIBUTE_DEFINITIONS)[number]["key"];
 
 export type CompanyRecord = {
+  sector_code: string;
   bvd_code: string;
   nombre: string | null;
   webpage: string | null;
@@ -67,6 +72,7 @@ export type CompanyRecord = {
 
 export type CompanyDirectoryRecord = Pick<
   CompanyRecord,
+  | "sector_code"
   | "bvd_code"
   | "nombre"
   | "webpage"
@@ -97,6 +103,7 @@ export type CompanyDirectoryRecord = Pick<
 >;
 
 export type CompanyAttributeRecord = {
+  sector_code: string;
   bvd_code: string;
   attribute_key: CompanyAttributeKey;
   attribute_label: string;
@@ -110,6 +117,7 @@ export type CompanyDirectoryRow = CompanyDirectoryRecord & {
 
 export type CompanyHistoryPoint = {
   id: number;
+  sector_code: string;
   bvd_code: string;
   metric_key: "volume_negocios" | "net_debt" | "ebitda" | "ebit" | "empleados";
   metric_label: string;

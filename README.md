@@ -1,66 +1,63 @@
-# The Iberian Freight Forwarding Sector Dashboard
+# Iberian PPE and Workplace Safety Sector Dashboard
 
-Public read-only sector dashboard built with Next.js, Supabase Postgres, and a manual Excel import workflow.
+Public read-only dashboard built with Next.js, Supabase Postgres, and a manual Excel import workflow.
 
 ## Scope
 
-This project is a standalone copy for a single sector only:
+This project is a standalone single-sector app:
 
-- Sector: `The Iberian freight forwarding sector`
-- Short project name: `Freight Forwarding`
+- Sector: `Iberian PPE and Workplace Safety Sector`
+- Sector code: `009`
+- Project slug: `iberian-ppe-and-workplace-safety-sector`
 - Pages kept as-is:
   - `Overview`
   - `Companies`
   - `Geography`
   - `Ownership Groups`
 
-The current architecture stays unchanged:
+The UI is not multi-sector. The shared Supabase database is multi-sector through `sector_code`.
 
-- no multi-sector mode
-- no admin
-- no auth
-- no storage
-- no UI import flow
+## Sector Description
 
-## What changed for this sector
+The Iberian PPE and workplace safety sector is a robust market spanning Spain and Portugal, dedicated to upholding rigorous EU safety standards through high-quality protective gear and health services. This industry is fueled by a strong industrial landscape and a growing corporate emphasis on employee well-being, risk prevention, and ESG compliance. From traditional manufacturing to modern construction, the sector continues to evolve by integrating innovative technology to keep the region's workforce safe and productive.
 
-- UI copy, metadata, and labels were adapted to freight forwarding
-- The sector attributes were replaced with the new freight forwarding attribute set
-- The importer now validates the new `Dashboard.xlsx` layout and reads the new Excel files
-- `BvD Code` remains the unique identifier for joins and imports, but stays hidden from the visible UI
-- The project now points locally to the new standalone Supabase project
+## Sector Attributes
 
-## Sector attributes
+Dashboard columns after `Q` must match these attributes exactly:
 
-These are the active boolean attributes for this project:
+- `Fall protection PPE`
+- `Hearing protection`
+- `Hand and arm protection`
+- `Foot and leg protection`
+- `Eye and face protection`
+- `Respiratory protection`
+- `Head protection`
+- `Protective clothing`
+- `Workplace safety equipment non worn`
+- `Consumables and disposables`
+- `Manufacturing`
+- `Distribution`
 
-- `Ocean freight`
-- `Air freight`
-- `Road freight`
-- `Rail intermodal`
-- `Customs clearance`
-- `Temperature controlled cold chain`
-- `Pharma or GDP related`
-- `Dangerous goods chemicals`
+## Data Rules
 
-## Data rules implemented
-
-- `BvD Code` is the unique company identifier
-- `Dashboard.xlsx` is the primary sector membership file
-- `SABI.xlsx` enriches matched companies only
-- In `Dashboard.xlsx`, columns `A:Q` are standard fields
-- Every column after `Q` is treated as a sector boolean attribute
+- `BvD Code` is the company business identifier inside a sector.
+- Company identity in the shared database is `(sector_code, bvd_code)`.
+- `Dashboard.xlsx` is the primary sector membership file.
+- `SABI.xlsx` enriches matched companies only.
+- In `Dashboard.xlsx`, columns `A:Q` are standard fields.
+- Every column after `Q` is treated as a boolean sector attribute.
 - Boolean conversion in `Dashboard.xlsx`:
   - `✓` => `true`
   - `⮽` => `false`
   - `x` => `false`
   - `X` => `false`
   - empty => `false`
-- Monetary values coming from `th EUR` are converted to real `EUR` during import
-- The UI keeps showing monetary values in EUR, with compact million formatting where applicable
-- SABI-only companies that do not exist in the Dashboard file are ignored
+- Monetary values from `kEUR` / `th EUR` are multiplied by `1000` during import.
+- The UI shows monetary values in EUR using compact million formatting where applicable.
+- SABI-only companies that do not exist in `Dashboard.xlsx` are ignored.
+- Cleanup deletes only rows where `sector_code = SECTOR_CODE`.
 
-## Files expected by the importer
+## Files Expected By The Importer
 
 Preferred location:
 
@@ -72,48 +69,42 @@ Fallback also supported:
 - `Dashboard.xlsx`
 - `SABI.xlsx`
 
-In this workspace, both files already exist in the project root and in `data/input/`.
+The importer checks the project root first, then `data/input/`.
 
-## Supabase environment variables
+## Supabase Environment Variables
 
-`NEXT_PUBLIC_SUPABASE_URL` must be the project API URL, not the Supabase dashboard URL.
-
-Use:
+Use the shared Supabase project API URL:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://iaquoxyiyydkmbnynixe.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=https://vbmghaenmoulwovfepdc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SECTOR_CODE=009
 ```
 
 Notes:
 
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` is used by the frontend for public read access
-- `SUPABASE_SERVICE_ROLE_KEY` is used only by `scripts/import-data.ts`
-- Do not expose `SUPABASE_SERVICE_ROLE_KEY` in Vercel client-side settings
-- Vercel only needs:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL` may also be the Supabase dashboard project URL; the app normalizes it to the API URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` is used by the read-only frontend.
+- `SUPABASE_SERVICE_ROLE_KEY` is used only by `scripts/import-data.ts`.
+- In Vercel, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SECTOR_CODE`.
+- Do not add `SUPABASE_SERVICE_ROLE_KEY` to Vercel unless you intentionally run maintenance/import scripts there.
 
-## SQL to paste into Supabase
+## SQL
 
-Use the existing schema file:
+Apply the SQL in:
 
 - `supabase/migrations/20260421173000_init_sector_dashboard.sql`
 
-No schema change was required for this sector. The same tables are reused:
+It creates:
 
-- `public.companies`
-- `public.company_attributes`
-- `public.company_financial_history`
+- `public.sectors`
+- `public.companies` with unique `(sector_code, bvd_code)`
+- `public.company_attributes` with unique `(sector_code, bvd_code, attribute_key)`
+- `public.company_financial_history` with unique `(sector_code, bvd_code, metric_key, period_offset)`
+- composite foreign keys, indexes, `updated_at` triggers, and public read RLS policies
 
-That SQL also creates:
-
-- indexes
-- `updated_at` trigger
-- RLS public `select` policies for the read-only frontend
-
-## Local setup
+## Local Setup
 
 Install dependencies:
 
@@ -127,7 +118,7 @@ Copy envs if needed:
 cp .env.example .env.local
 ```
 
-Import data:
+Apply the SQL in the Supabase SQL editor, then import:
 
 ```bash
 pnpm import:data
@@ -139,23 +130,22 @@ Run locally:
 pnpm dev
 ```
 
-## Import flow
+## Import Flow
 
-The importer does the following:
+The importer:
 
-1. Reads `Dashboard.xlsx`
-2. Validates the standard columns in `A:Q`
-3. Validates the freight forwarding attribute columns after `Q`
-4. Converts the attribute flags to booleans
-5. Reads `SABI.xlsx`
-6. Normalizes SABI headers
-7. Merges both files by `BvD Code`
-8. Upserts `companies`
-9. Rebuilds `company_attributes`
-10. Rebuilds `company_financial_history`
-11. Removes stale companies no longer present in the current Dashboard file
+1. Reads `SECTOR_CODE`.
+2. Upserts the sector row into `sectors`.
+3. Reads and validates `Dashboard.xlsx`.
+4. Converts boolean attributes after column `Q`.
+5. Reads and normalizes `SABI.xlsx`.
+6. Merges both files by `BvD Code`.
+7. Upserts `companies` using `sector_code,bvd_code`.
+8. Rebuilds `company_attributes` only for this sector.
+9. Rebuilds `company_financial_history` only for this sector.
+10. Removes stale companies only inside this sector.
 
-## Verification commands
+## Verification Commands
 
 ```bash
 pnpm typecheck
@@ -164,12 +154,12 @@ pnpm build
 pnpm import:data
 ```
 
-## Deploy to Vercel
+## Deploy To Vercel
 
-1. Create a new Vercel project for this copy
-2. Add:
+1. Create a new Vercel project for this sector copy.
+2. Add environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Deploy
-
-Do not add `SUPABASE_SERVICE_ROLE_KEY` to the frontend deployment unless you intentionally run the importer in a secure server-side context.
+   - `SECTOR_CODE`
+3. Deploy with Vercel's Next.js defaults.
+4. Import data locally or from a secure maintenance environment after SQL is applied.

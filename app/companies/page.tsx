@@ -11,6 +11,8 @@ import { getRequestLocale } from "@/lib/i18n-server";
 import { buildSearchParams, toUrlSearchParams } from "@/lib/search-params";
 import type { CompaniesSearchParams } from "@/types/data";
 
+export const dynamic = "force-dynamic";
+
 type CompaniesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };

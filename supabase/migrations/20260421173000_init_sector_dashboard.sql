@@ -1,5 +1,16 @@
+create table if not exists public.sectors (
+  sector_code text primary key,
+  name text not null,
+  slug text not null unique,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.companies (
-  bvd_code text primary key,
+  id bigint generated always as identity primary key,
+  sector_code text not null references public.sectors(sector_code) on delete restrict,
+  bvd_code text not null,
   nombre text,
   webpage text,
   nif text,
@@ -51,43 +62,59 @@ create table if not exists public.companies (
   source_sabi boolean not null default false,
   raw_json_sabi jsonb,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint companies_sector_code_bvd_code_key unique (sector_code, bvd_code)
 );
 
 create table if not exists public.company_attributes (
   id bigint generated always as identity primary key,
-  bvd_code text not null references public.companies(bvd_code) on delete cascade,
+  sector_code text not null,
+  bvd_code text not null,
   attribute_key text not null,
   attribute_label text not null,
   value boolean not null,
-  constraint company_attributes_bvd_code_attribute_key_key unique (bvd_code, attribute_key)
+  constraint company_attributes_company_fk foreign key (sector_code, bvd_code)
+    references public.companies(sector_code, bvd_code) on update cascade on delete cascade,
+  constraint company_attributes_sector_code_bvd_code_attribute_key_key unique (
+    sector_code,
+    bvd_code,
+    attribute_key
+  )
 );
 
 create table if not exists public.company_financial_history (
   id bigint generated always as identity primary key,
-  bvd_code text not null references public.companies(bvd_code) on delete cascade,
+  sector_code text not null,
+  bvd_code text not null,
   metric_key text not null,
   metric_label text not null,
   period_offset integer not null check (period_offset between 0 and 7),
   value double precision,
+  constraint company_financial_history_company_fk foreign key (sector_code, bvd_code)
+    references public.companies(sector_code, bvd_code) on update cascade on delete cascade,
   constraint company_financial_history_metric_key_check check (
     metric_key in ('volume_negocios', 'net_debt', 'ebitda', 'ebit', 'empleados')
   ),
-  constraint company_financial_history_bvd_code_metric_key_period_offset_key unique (
+  constraint company_financial_history_sector_code_bvd_code_metric_key_period_offset_key unique (
+    sector_code,
     bvd_code,
     metric_key,
     period_offset
   )
 );
 
-create index if not exists companies_pais_idx on public.companies (pais);
-create index if not exists companies_provincia_idx on public.companies (provincia);
-create index if not exists companies_propietario_idx on public.companies (propietario);
-create index if not exists companies_t_o_idx on public.companies (t_o desc);
-create index if not exists companies_ebitda_idx on public.companies (ebitda desc);
-create index if not exists company_attributes_bvd_code_idx on public.company_attributes (bvd_code);
-create index if not exists company_financial_history_bvd_code_idx on public.company_financial_history (bvd_code);
-create index if not exists company_financial_history_metric_key_idx on public.company_financial_history (metric_key);
+create index if not exists companies_sector_code_idx on public.companies (sector_code);
+create index if not exists companies_sector_code_pais_idx on public.companies (sector_code, pais);
+create index if not exists companies_sector_code_provincia_idx on public.companies (sector_code, provincia);
+create index if not exists companies_sector_code_propietario_idx on public.companies (sector_code, propietario);
+create index if not exists companies_sector_code_t_o_idx on public.companies (sector_code, t_o desc);
+create index if not exists companies_sector_code_ebitda_idx on public.companies (sector_code, ebitda desc);
+create index if not exists company_attributes_sector_code_bvd_code_idx
+  on public.company_attributes (sector_code, bvd_code);
+create index if not exists company_financial_history_sector_code_bvd_code_idx
+  on public.company_financial_history (sector_code, bvd_code);
+create index if not exists company_financial_history_sector_code_metric_key_idx
+  on public.company_financial_history (sector_code, metric_key);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -99,15 +126,29 @@ begin
 end;
 $$;
 
+drop trigger if exists sectors_set_updated_at on public.sectors;
+create trigger sectors_set_updated_at
+before update on public.sectors
+for each row
+execute function public.set_updated_at();
+
 drop trigger if exists companies_set_updated_at on public.companies;
 create trigger companies_set_updated_at
 before update on public.companies
 for each row
 execute function public.set_updated_at();
 
+alter table public.sectors enable row level security;
 alter table public.companies enable row level security;
 alter table public.company_attributes enable row level security;
 alter table public.company_financial_history enable row level security;
+
+drop policy if exists "Public read sectors" on public.sectors;
+create policy "Public read sectors"
+on public.sectors
+for select
+to anon
+using (true);
 
 drop policy if exists "Public read companies" on public.companies;
 create policy "Public read companies"

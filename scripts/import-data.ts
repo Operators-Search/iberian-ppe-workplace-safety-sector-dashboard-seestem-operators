@@ -3,30 +3,34 @@ import path from "node:path";
 import * as XLSX from "xlsx";
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
-import { getSupabaseServiceRoleKey, getSupabaseUrl } from "../lib/env";
+import { getSectorCode, getSupabaseServiceRoleKey, getSupabaseUrl } from "../lib/env";
 import { ATTRIBUTE_DEFINITIONS, type CompanyAttributeKey } from "../types/data";
 
 loadEnvConfig(process.cwd());
 
+const SECTOR_NAME = "Iberian PPE and Workplace Safety Sector";
+const SECTOR_SLUG = "iberian-ppe-and-workplace-safety-sector";
+const SECTOR_DESCRIPTION =
+  "The Iberian PPE and workplace safety sector spans Spain and Portugal, upholding rigorous EU safety standards through protective gear, workplace safety equipment, and health services.";
 const DASHBOARD_SHEET_NAME = "DashBoard";
 const SABI_SHEET_NAME = "AUX - BD SABI";
 const DASHBOARD_STANDARD_COLUMNS = [
-  "NOMBRE",
+  "NAME",
   "WEBPAGE",
   "NIF",
   "BvD Code",
-  "Pais",
-  "Provincia",
-  "Fecha de fundación",
-  "Empleados",
-  "Propietario",
-  "T/o",
+  "Country",
+  "State",
+  "Date of Establishment",
+  "Employees",
+  "Owner",
+  "Turnover (k€)",
   "CAGR",
-  "EBITDA",
+  "EBITDA (k€)",
   "EBITDA %",
-  "NET DEBT",
+  "NET DEBT (k€)",
   "ND/EBITDA",
-  "WC",
+  "Working Capital (k€)",
   "WC/T/o",
 ] as const;
 const EXPECTED_ATTRIBUTE_COLUMNS = ATTRIBUTE_DEFINITIONS.map((attribute) => attribute.label);
@@ -51,7 +55,6 @@ const HISTORY_METRICS = [
 ] as const;
 const CHUNK_SIZE = 200;
 const THOUSAND_EUR_TO_EUR = 1000;
-const EXCLUDED_COMPANY_CODES = new Set(["0505561336U"]);
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -87,6 +90,7 @@ type SabiRow = {
 };
 
 type CompanyUpsert = {
+  sector_code: string;
   bvd_code: string;
   nombre: string | null;
   webpage: string | null;
@@ -141,6 +145,7 @@ type CompanyUpsert = {
 };
 
 type CompanyAttributeInsert = {
+  sector_code: string;
   bvd_code: string;
   attribute_key: CompanyAttributeKey;
   attribute_label: string;
@@ -148,6 +153,7 @@ type CompanyAttributeInsert = {
 };
 
 type CompanyHistoryInsert = {
+  sector_code: string;
   bvd_code: string;
   metric_key: string;
   metric_label: string;
@@ -175,6 +181,7 @@ function normalizeHeader(value: unknown) {
     .replace(/\r?\n/g, " | ")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u20ac|\u00e2\u201a\u00ac/g, "EUR")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -250,6 +257,12 @@ function toNullableMonetaryValue(value: unknown): number | null {
   }
 
   return parsed * THOUSAND_EUR_TO_EUR;
+}
+
+function getValueByNormalizedPrefix(rowObject: Record<string, unknown>, prefix: string) {
+  const normalizedPrefix = normalizeHeader(prefix).toLowerCase();
+  const matchingKey = Object.keys(rowObject).find((key) => key.startsWith(normalizedPrefix));
+  return matchingKey ? rowObject[matchingKey] : null;
 }
 
 function toJsonValue(value: unknown): JsonValue {
@@ -335,7 +348,9 @@ function readDashboardRows(filePath: string): DashboardCompanyRow[] {
     .slice(2)
     .filter((row) => row.some((cell) => toNullableString(cell)))
     .map((row) => {
-      const rowObject = Object.fromEntries(normalizedHeaders.map((header, index) => [header, row[index] ?? null]));
+      const rowObject: Record<string, unknown> = Object.fromEntries(
+        normalizedHeaders.map((header, index) => [header, row[index] ?? null]),
+      );
       const bvdCode = toNullableString(rowObject["bvd code"]);
 
       if (!bvdCode) {
@@ -355,29 +370,27 @@ function readDashboardRows(filePath: string): DashboardCompanyRow[] {
           value: parseBooleanAttribute(label, rowObject[normalizedAttributeColumns[index]]),
         };
       });
-
       return {
         bvdCode,
-        nombre: toNullableString(rowObject["nombre"]),
+        nombre: toNullableString(rowObject["name"]),
         webpage: toNullableString(rowObject["webpage"]),
         nif: toNullableString(rowObject["nif"]),
-        pais: toNullableString(rowObject["pais"]),
-        provincia: toNullableString(rowObject["provincia"]),
-        fechaFundacion: toNullableDate(rowObject["fecha de fundacion"]),
-        empleados: toNullableNumber(rowObject["empleados"]),
-        propietario: toNullableString(rowObject["propietario"]),
-        t_o: toNullableMonetaryValue(rowObject["t/o"]),
+        pais: toNullableString(rowObject["country"]),
+        provincia: toNullableString(rowObject["state"]),
+        fechaFundacion: toNullableDate(rowObject["date of establishment"]),
+        empleados: toNullableNumber(rowObject["employees"]),
+        propietario: toNullableString(rowObject["owner"]),
+        t_o: toNullableMonetaryValue(getValueByNormalizedPrefix(rowObject, "turnover")),
         cagr: toNullableNumber(rowObject["cagr"]),
-        ebitda: toNullableMonetaryValue(rowObject["ebitda"]),
+        ebitda: toNullableMonetaryValue(getValueByNormalizedPrefix(rowObject, "ebitda")),
         ebitda_pct: toNullableNumber(rowObject["ebitda %"]),
-        net_debt: toNullableMonetaryValue(rowObject["net debt"]),
+        net_debt: toNullableMonetaryValue(getValueByNormalizedPrefix(rowObject, "net debt")),
         nd_ebitda: toNullableNumber(rowObject["nd/ebitda"]),
-        wc: toNullableMonetaryValue(rowObject["wc"]),
+        wc: toNullableMonetaryValue(getValueByNormalizedPrefix(rowObject, "working capital")),
         wc_t_o: toNullableNumber(rowObject["wc/t/o"]),
         attributes,
       };
-    })
-    .filter((row) => !EXCLUDED_COMPANY_CODES.has(row.bvdCode));
+    });
 }
 
 function readSabiRows(filePath: string) {
@@ -415,12 +428,17 @@ function readSabiRows(filePath: string) {
   return byCode;
 }
 
-function createCompanyRecord(dashboardRow: DashboardCompanyRow, sabiRow: SabiRow | undefined): CompanyUpsert {
+function createCompanyRecord(
+  sectorCode: string,
+  dashboardRow: DashboardCompanyRow,
+  sabiRow: SabiRow | undefined,
+): CompanyUpsert {
   const latestPeriodEnd =
     toNullableDate(getSabiValue(sabiRow, "latest_period_end")) ??
     toNullableDate(getSabiValue(sabiRow, "Ultimo Ano Disponivel"));
 
   return {
+    sector_code: sectorCode,
     bvd_code: dashboardRow.bvdCode,
     nombre: dashboardRow.nombre ?? toNullableString(getSabiValue(sabiRow, "Nome")),
     webpage: dashboardRow.webpage ?? toNullableString(getSabiValue(sabiRow, "Endereco Internet")),
@@ -496,7 +514,7 @@ function createCompanyRecord(dashboardRow: DashboardCompanyRow, sabiRow: SabiRow
   };
 }
 
-function createHistoryRows(bvdCode: string, sabiRow: SabiRow | undefined): CompanyHistoryInsert[] {
+function createHistoryRows(sectorCode: string, bvdCode: string, sabiRow: SabiRow | undefined): CompanyHistoryInsert[] {
   if (!sabiRow) {
     return [];
   }
@@ -523,6 +541,7 @@ function createHistoryRows(bvdCode: string, sabiRow: SabiRow | undefined): Compa
       }
 
       rows.push({
+        sector_code: sectorCode,
         bvd_code: bvdCode,
         metric_key: metric.key,
         metric_label: metric.label,
@@ -543,9 +562,11 @@ async function runBatched<T>(items: T[], callback: (chunk: T[]) => Promise<void>
 }
 
 async function main() {
+  const sectorCode = getSectorCode();
   const dashboardPath = resolveInputPath("Dashboard.xlsx");
   const sabiPath = resolveInputPath("SABI.xlsx");
 
+  console.log(`Importing sector ${sectorCode} (${SECTOR_NAME})`);
   console.log(`Reading Dashboard from ${dashboardPath}`);
   console.log(`Reading SABI from ${sabiPath}`);
 
@@ -559,14 +580,15 @@ async function main() {
 
   for (const dashboardRow of dashboardRows) {
     const sabiRow = sabiRows.get(dashboardRow.bvdCode);
-    companyRecords.push(createCompanyRecord(dashboardRow, sabiRow));
+    companyRecords.push(createCompanyRecord(sectorCode, dashboardRow, sabiRow));
     attributeRecords.push(
       ...dashboardRow.attributes.map((attribute) => ({
+        sector_code: sectorCode,
         bvd_code: dashboardRow.bvdCode,
         ...attribute,
       })),
     );
-    historyRecords.push(...createHistoryRows(dashboardRow.bvdCode, sabiRow));
+    historyRecords.push(...createHistoryRows(sectorCode, dashboardRow.bvdCode, sabiRow));
   }
 
   const supabase = createClient(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
@@ -576,8 +598,25 @@ async function main() {
     },
   });
 
+  const { error: sectorError } = await supabase.from("sectors").upsert(
+    {
+      sector_code: sectorCode,
+      name: SECTOR_NAME,
+      slug: SECTOR_SLUG,
+      description: SECTOR_DESCRIPTION,
+    },
+    { onConflict: "sector_code" },
+  );
+  if (sectorError) {
+    throw new Error(`Failed to upsert sector. Apply the SQL migration first. Supabase said: ${sectorError.message}`);
+  }
+
   await runBatched([...importedCodes], async (chunk) => {
-    const { error: attributeDeleteError } = await supabase.from("company_attributes").delete().in("bvd_code", chunk);
+    const { error: attributeDeleteError } = await supabase
+      .from("company_attributes")
+      .delete()
+      .eq("sector_code", sectorCode)
+      .in("bvd_code", chunk);
     if (attributeDeleteError) {
       throw new Error(`Failed to clear existing company attributes: ${attributeDeleteError.message}`);
     }
@@ -585,6 +624,7 @@ async function main() {
     const { error: historyDeleteError } = await supabase
       .from("company_financial_history")
       .delete()
+      .eq("sector_code", sectorCode)
       .in("bvd_code", chunk);
     if (historyDeleteError) {
       throw new Error(`Failed to clear existing company financial history: ${historyDeleteError.message}`);
@@ -592,7 +632,7 @@ async function main() {
   });
 
   await runBatched(companyRecords, async (chunk) => {
-    const { error } = await supabase.from("companies").upsert(chunk, { onConflict: "bvd_code" });
+    const { error } = await supabase.from("companies").upsert(chunk, { onConflict: "sector_code,bvd_code" });
     if (error) {
       throw new Error(`Failed to upsert companies: ${error.message}`);
     }
@@ -600,7 +640,7 @@ async function main() {
 
   await runBatched(attributeRecords, async (chunk) => {
     const { error } = await supabase.from("company_attributes").upsert(chunk, {
-      onConflict: "bvd_code,attribute_key",
+      onConflict: "sector_code,bvd_code,attribute_key",
     });
     if (error) {
       throw new Error(`Failed to upsert company attributes: ${error.message}`);
@@ -609,7 +649,7 @@ async function main() {
 
   await runBatched(historyRecords, async (chunk) => {
     const { error } = await supabase.from("company_financial_history").upsert(chunk, {
-      onConflict: "bvd_code,metric_key,period_offset",
+      onConflict: "sector_code,bvd_code,metric_key,period_offset",
     });
     if (error) {
       throw new Error(`Failed to upsert company financial history: ${error.message}`);
@@ -618,7 +658,8 @@ async function main() {
 
   const { data: existingCompanies, error: existingCompaniesError } = await supabase
     .from("companies")
-    .select("bvd_code");
+    .select("bvd_code")
+    .eq("sector_code", sectorCode);
   if (existingCompaniesError) {
     throw new Error(`Failed to read current company codes: ${existingCompaniesError.message}`);
   }
@@ -628,7 +669,7 @@ async function main() {
     .filter((bvdCode) => !importedCodes.has(bvdCode));
 
   await runBatched(staleCodes, async (chunk) => {
-    const { error } = await supabase.from("companies").delete().in("bvd_code", chunk);
+    const { error } = await supabase.from("companies").delete().eq("sector_code", sectorCode).in("bvd_code", chunk);
     if (error) {
       throw new Error(`Failed to remove stale companies: ${error.message}`);
     }

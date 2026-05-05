@@ -209,9 +209,9 @@ type MessageCatalog = {
 const messages: Record<Locale, MessageCatalog> = {
   en: {
     metadata: {
-      title: "The Iberian Freight Forwarding Sector",
+      title: "Iberian PPE and Workplace Safety Sector",
       description:
-        "Public sector dashboard for the Iberian freight forwarding sector across ocean, air, road, rail, customs, cold chain, pharma/GDP, and dangerous goods logistics.",
+        "The Iberian PPE and workplace safety sector is a robust market spanning Spain and Portugal, dedicated to upholding rigorous EU safety standards through high-quality protective gear and health services. This industry is currently fueled by a strong industrial landscape and a growing corporate emphasis on employee well-being, risk prevention, and ESG compliance. From traditional manufacturing to modern construction, the sector continues to evolve by integrating innovative technology to keep the region's workforce safe and productive.",
     },
     language: {
       label: "Language",
@@ -219,8 +219,8 @@ const messages: Record<Locale, MessageCatalog> = {
     },
     sidebar: {
       badge: "Public Dashboard",
-      title: "The Iberian Freight Forwarding Sector",
-      description: "Forwarders, customs specialists, and multimodal logistics operators benchmarked in one place.",
+      title: "Iberian PPE and Workplace Safety Sector",
+      description: "PPE suppliers, manufacturers, distributors, and workplace safety specialists across Spain and Portugal.",
       nav: {
         overview: "Overview",
         companies: "Companies",
@@ -414,20 +414,25 @@ const messages: Record<Locale, MessageCatalog> = {
       empleados: "Employees",
     },
     attributes: {
-      ocean_freight: "Ocean freight",
-      air_freight: "Air freight",
-      road_freight: "Road freight",
-      rail_intermodal: "Rail intermodal",
-      customs_clearance: "Customs clearance",
-      temperature_controlled_cold_chain: "Temperature controlled cold chain",
-      pharma_or_gdp_related: "Pharma or GDP related",
-      dangerous_goods_chemicals: "Dangerous goods chemicals",
+      fall_protection_ppe: "Fall protection PPE",
+      hearing_protection: "Hearing protection",
+      hand_and_arm_protection: "Hand and arm protection",
+      foot_and_leg_protection: "Foot and leg protection",
+      eye_and_face_protection: "Eye and face protection",
+      respiratory_protection: "Respiratory protection",
+      head_protection: "Head protection",
+      protective_clothing: "Protective clothing",
+      workplace_safety_equipment_non_worn: "Workplace safety equipment non worn",
+      consumables_and_disposables: "Consumables and disposables",
+      manufacturing: "Manufacturing",
+      distribution: "Distribution",
     },
   },
   es: {
     metadata: {
-      title: "Sector Ibérico de Transitarios Logísticos",
-      description: "Dashboard público del sector ibérico de transitarios logísticos y logística internacional.",
+      title: "Sector Iberico de EPI y Seguridad Laboral",
+      description:
+        "El sector iberico de EPI y seguridad laboral abarca Espana y Portugal, con equipos de proteccion, servicios de salud laboral y soluciones de seguridad alineadas con estandares europeos exigentes. Esta impulsado por la actividad industrial, la prevencion de riesgos, el bienestar de los empleados y el cumplimiento ESG.",
     },
     language: {
       label: "Idioma",
@@ -435,9 +440,9 @@ const messages: Record<Locale, MessageCatalog> = {
     },
     sidebar: {
       badge: "Dashboard público",
-      title: "Sector Ibérico de Transitarios Logísticos",
+      title: "Sector Iberico de EPI y Seguridad Laboral",
       description:
-        "Transitarios, especialistas en aduanas y operadores logísticos multimodales analizados en un solo lugar.",
+        "Fabricantes, distribuidores y especialistas en seguridad laboral de Espana y Portugal analizados en un solo lugar.",
       nav: {
         overview: "Resumen",
         companies: "Compañías",
@@ -631,20 +636,25 @@ const messages: Record<Locale, MessageCatalog> = {
       empleados: "Empleados",
     },
     attributes: {
-      ocean_freight: "Transporte marítimo",
-      air_freight: "Transporte aéreo",
-      road_freight: "Transporte por carretera",
-      rail_intermodal: "Intermodal ferroviario",
-      customs_clearance: "Despacho de aduanas",
-      temperature_controlled_cold_chain: "Cadena de frío con temperatura controlada",
-      pharma_or_gdp_related: "Relacionado con pharma o GDP",
-      dangerous_goods_chemicals: "Mercancías peligrosas / químicos",
+      fall_protection_ppe: "EPI anticaidas",
+      hearing_protection: "Proteccion auditiva",
+      hand_and_arm_protection: "Proteccion de manos y brazos",
+      foot_and_leg_protection: "Proteccion de pies y piernas",
+      eye_and_face_protection: "Proteccion ocular y facial",
+      respiratory_protection: "Proteccion respiratoria",
+      head_protection: "Proteccion craneal",
+      protective_clothing: "Ropa de proteccion",
+      workplace_safety_equipment_non_worn: "Equipos de seguridad no portados",
+      consumables_and_disposables: "Consumibles y desechables",
+      manufacturing: "Fabricacion",
+      distribution: "Distribucion",
     },
   },
   pt: {
     metadata: {
-      title: "Setor Ibérico de Transitários Logísticos",
-      description: "Painel público do setor ibérico de transitários logísticos e logística internacional.",
+      title: "Setor Iberico de EPI e Seguranca no Trabalho",
+      description:
+        "O setor iberico de EPI e seguranca no trabalho abrange Espanha e Portugal, com equipamentos de protecao, servicos de saude laboral e solucoes de seguranca alinhadas com normas europeias exigentes. E impulsionado pela atividade industrial, prevencao de riscos, bem-estar dos trabalhadores e cumprimento ESG.",
     },
     language: {
       label: "Idioma",
@@ -652,9 +662,9 @@ const messages: Record<Locale, MessageCatalog> = {
     },
     sidebar: {
       badge: "Painel público",
-      title: "Setor Ibérico de Transitários Logísticos",
+      title: "Setor Iberico de EPI e Seguranca no Trabalho",
       description:
-        "Transitários, especialistas aduaneiros e operadores logísticos multimodais analisados num só lugar.",
+        "Fabricantes, distribuidores e especialistas em seguranca laboral de Espanha e Portugal analisados num so lugar.",
       nav: {
         overview: "Visão geral",
         companies: "Empresas",
@@ -848,14 +858,18 @@ const messages: Record<Locale, MessageCatalog> = {
       empleados: "Empregados",
     },
     attributes: {
-      ocean_freight: "Transporte marítimo",
-      air_freight: "Transporte aéreo",
-      road_freight: "Transporte rodoviário",
-      rail_intermodal: "Intermodal ferroviário",
-      customs_clearance: "Desembaraço aduaneiro",
-      temperature_controlled_cold_chain: "Cadeia de frio com temperatura controlada",
-      pharma_or_gdp_related: "Relacionado com pharma ou GDP",
-      dangerous_goods_chemicals: "Mercadorias perigosas / químicos",
+      fall_protection_ppe: "EPI antiqueda",
+      hearing_protection: "Protecao auditiva",
+      hand_and_arm_protection: "Protecao de maos e bracos",
+      foot_and_leg_protection: "Protecao de pes e pernas",
+      eye_and_face_protection: "Protecao ocular e facial",
+      respiratory_protection: "Protecao respiratoria",
+      head_protection: "Protecao da cabeca",
+      protective_clothing: "Vestuario de protecao",
+      workplace_safety_equipment_non_worn: "Equipamento de seguranca nao usado no corpo",
+      consumables_and_disposables: "Consumiveis e descartaveis",
+      manufacturing: "Fabricacao",
+      distribution: "Distribuicao",
     },
   },
 };

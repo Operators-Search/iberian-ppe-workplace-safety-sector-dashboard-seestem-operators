@@ -6,8 +6,17 @@ function getEnvValue(key: string) {
   return value;
 }
 
+function normalizeSupabaseProjectUrl(value: string) {
+  const dashboardMatch = value.match(/^https:\/\/supabase\.com\/dashboard\/project\/([a-z0-9-]+)\/?$/i);
+  if (dashboardMatch) {
+    return `https://${dashboardMatch[1]}.supabase.co`;
+  }
+
+  return value;
+}
+
 export function getSupabaseUrl() {
-  return getEnvValue("NEXT_PUBLIC_SUPABASE_URL");
+  return normalizeSupabaseProjectUrl(getEnvValue("NEXT_PUBLIC_SUPABASE_URL"));
 }
 
 export function getSupabaseAnonKey() {
@@ -16,4 +25,8 @@ export function getSupabaseAnonKey() {
 
 export function getSupabaseServiceRoleKey() {
   return getEnvValue("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+export function getSectorCode() {
+  return getEnvValue("SECTOR_CODE");
 }

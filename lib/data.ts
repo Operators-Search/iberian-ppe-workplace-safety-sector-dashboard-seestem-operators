@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import { getSectorCode } from "@/lib/env";
 import { formatCurrencyCompact, formatInteger, formatPercent } from "@/lib/format";
 import { getAttributeLabel, getMessages, type Locale } from "@/lib/i18n";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,7 +24,6 @@ import {
 
 const PAGE_SIZE = 20;
 const DATA_REVALIDATE_SECONDS = 60 * 60;
-const EXCLUDED_COMPANY_CODES = new Set(["0505561336U"]);
 const HISTORY_METRIC_ORDER: CompanyHistoryPoint["metric_key"][] = [
   "volume_negocios",
   "ebitda",
@@ -32,6 +32,7 @@ const HISTORY_METRIC_ORDER: CompanyHistoryPoint["metric_key"][] = [
   "net_debt",
 ];
 const COMPANY_DIRECTORY_SELECT = `
+  sector_code,
   bvd_code,
   nombre,
   webpage,
@@ -60,6 +61,7 @@ const COMPANY_DIRECTORY_SELECT = `
   nd_ebitda,
   wc_t_o,
   company_attributes (
+    sector_code,
     bvd_code,
     attribute_key,
     attribute_label,
@@ -90,6 +92,10 @@ function parseNumber(value: string | undefined) {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isMissingSchemaError(message: string) {
+  return message.includes("Could not find the table") || message.includes("schema cache");
 }
 
 function getYear(value: string | null | undefined) {
@@ -159,27 +165,29 @@ function createCompanyDirectoryRow(row: RawCompanyRow): CompanyDirectoryRow {
   };
 }
 
-function isIncludedCompany(row: Pick<CompanyDirectoryRecord, "bvd_code">) {
-  return !EXCLUDED_COMPANY_CODES.has(row.bvd_code);
-}
-
-const getCachedCompanyDirectoryRows = unstable_cache(async (): Promise<CompanyDirectoryRow[]> => {
+const getCachedCompanyDirectoryRows = unstable_cache(async (sectorCode: string): Promise<CompanyDirectoryRow[]> => {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("companies")
     .select(COMPANY_DIRECTORY_SELECT)
+    .eq("sector_code", sectorCode)
     .order("nombre", { ascending: true });
 
   if (error) {
+    if (isMissingSchemaError(error.message)) {
+      console.warn(`Companies table is not available yet for sector ${sectorCode}. Apply the Supabase SQL migration.`);
+      return [];
+    }
+
     throw new Error(`Failed to load companies: ${error.message}`);
   }
 
-  return ((data ?? []) as RawCompanyRow[])
-    .filter(isIncludedCompany)
-    .map(createCompanyDirectoryRow);
-}, ["company-directory-rows"], { revalidate: DATA_REVALIDATE_SECONDS });
+  return ((data ?? []) as RawCompanyRow[]).map(createCompanyDirectoryRow);
+}, ["company-directory-rows-v2"], { revalidate: DATA_REVALIDATE_SECONDS });
 
-export const getCompanyDirectoryRows = cache(async (): Promise<CompanyDirectoryRow[]> => getCachedCompanyDirectoryRows());
+export const getCompanyDirectoryRows = cache(async (): Promise<CompanyDirectoryRow[]> =>
+  getCachedCompanyDirectoryRows(getSectorCode()),
+);
 
 function matchesNumberRange(value: number | null, min: number | null, max: number | null) {
   if (min === null && max === null) {
@@ -418,22 +426,28 @@ export async function getOverviewStats(locale: Locale): Promise<OverviewStats> {
 }
 
 const getCachedCompanyHistoryPoints = unstable_cache(
-  async (bvdCode: string): Promise<CompanyHistoryPoint[]> => {
+  async (sectorCode: string, bvdCode: string): Promise<CompanyHistoryPoint[]> => {
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("company_financial_history")
       .select("*")
+      .eq("sector_code", sectorCode)
       .eq("bvd_code", bvdCode)
       .order("metric_key", { ascending: true })
       .order("period_offset", { ascending: false });
 
     if (error) {
+      if (isMissingSchemaError(error.message)) {
+        console.warn(`Company history table is not available yet for sector ${sectorCode}. Apply the Supabase SQL migration.`);
+        return [];
+      }
+
       throw new Error(`Failed to load company history: ${error.message}`);
     }
 
     return (data ?? []) as CompanyHistoryPoint[];
   },
-  ["company-history-points"],
+  ["company-history-points-v2"],
   { revalidate: DATA_REVALIDATE_SECONDS },
 );
 
@@ -445,7 +459,7 @@ async function getCompanyHistorySeries(
     return [];
   }
 
-  const points = prefetchedPoints ?? (await getCachedCompanyHistoryPoints(company.bvd_code));
+  const points = prefetchedPoints ?? (await getCachedCompanyHistoryPoints(getSectorCode(), company.bvd_code));
   const latestYear = getYear(company.latest_period_end || company.ultimo_ano_disponible);
   const byMetric = new Map<string, CompanyHistoryPoint[]>();
 
@@ -489,7 +503,7 @@ export async function getCompaniesPageData(searchParams: CompaniesSearchParams):
   const filters = parseCompaniesFilters(searchParams);
   const companiesPromise = getCompanyDirectoryRows();
   const historyPointsPromise = filters.selected
-    ? getCachedCompanyHistoryPoints(filters.selected)
+    ? getCachedCompanyHistoryPoints(getSectorCode(), filters.selected)
     : Promise.resolve([] as CompanyHistoryPoint[]);
   const companies = await companiesPromise;
   const filteredCompanies = sortCompanies(filterCompanies(companies, filters), filters.sort);

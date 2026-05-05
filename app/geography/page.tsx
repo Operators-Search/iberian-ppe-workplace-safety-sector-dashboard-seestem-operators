@@ -10,6 +10,8 @@ import { getRequestLocale } from "@/lib/i18n-server";
 import { buildSearchParams, toUrlSearchParams } from "@/lib/search-params";
 import type { GeographyCountryScope, GeographySearchParams } from "@/types/data";
 
+export const dynamic = "force-dynamic";
+
 type GeographyPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };

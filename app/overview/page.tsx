@@ -7,6 +7,9 @@ import { RankingTable } from "@/components/overview/ranking-table";
 import { getOverviewStats } from "@/lib/data";
 import { getMessages } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n-server";
+
+export const dynamic = "force-dynamic";
+
 export default async function OverviewPage() {
   const locale = await getRequestLocale();
   const copy = getMessages(locale);
@@ -14,7 +17,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      <PageHero eyebrow={copy.overview.eyebrow} title={copy.sidebar.title} />
+      <PageHero eyebrow={copy.overview.eyebrow} title={copy.sidebar.title} description={copy.metadata.description} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {overview.kpis.map((kpi) => (
