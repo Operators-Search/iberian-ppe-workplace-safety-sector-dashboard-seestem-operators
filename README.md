@@ -88,7 +88,31 @@ Notes:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is used by the read-only frontend.
 - `SUPABASE_SERVICE_ROLE_KEY` is used only by `scripts/import-data.ts`.
 - In Vercel, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SECTOR_CODE`.
+- Optionally add `CRON_SECRET` in Vercel to protect the keep-alive endpoint.
 - Do not add `SUPABASE_SERVICE_ROLE_KEY` to Vercel unless you intentionally run maintenance/import scripts there.
+
+## Supabase Availability
+
+Supabase can pause Free Plan projects with low activity after 7 days. The only guaranteed way to prevent inactivity pauses is upgrading the Supabase project to Pro.
+
+This app also includes a lightweight keep-alive mitigation for Free Plan projects:
+
+- Vercel Cron calls `/api/keepalive` once per day.
+- The route performs tiny read-only Supabase queries for the configured `SECTOR_CODE`.
+- It uses only the anon key and never uses the service role key.
+- The route is idempotent and does not insert, update, or delete data.
+- If `CRON_SECRET` is set in Vercel, Vercel sends it as a bearer token and the endpoint requires it.
+
+The cron is configured in `vercel.json`:
+
+```json
+{
+  "path": "/api/keepalive",
+  "schedule": "0 6 * * *"
+}
+```
+
+If the database is already paused, first unpause it from the Supabase dashboard. The cron can help prevent future inactivity pauses, but it cannot wake a paused project by itself.
 
 ## SQL
 
@@ -161,5 +185,7 @@ pnpm import:data
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SECTOR_CODE`
+   - `CRON_SECRET` optional but recommended
 3. Deploy with Vercel's Next.js defaults.
-4. Import data locally or from a secure maintenance environment after SQL is applied.
+4. Confirm Vercel shows one Cron Job for `/api/keepalive`.
+5. Import data locally or from a secure maintenance environment after SQL is applied.

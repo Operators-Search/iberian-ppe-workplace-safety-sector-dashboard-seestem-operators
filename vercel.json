@@ -5,5 +5,11 @@
     "NEXT_PUBLIC_SUPABASE_URL": "https://vbmghaenmoulwovfepdc.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZibWdoYWVubW91bHdvdmZlcGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODAyNTIsImV4cCI6MjA5MzQ1NjI1Mn0.F4g9pL4OSeTfh-Y-UKsgh2_6m_ChqLMh3-yoYmI-ZHk",
     "SECTOR_CODE": "009"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
